@@ -105,15 +105,15 @@ function fmtTime(t) {
 }
 
 /* ------------------------------ 全局配置 ------------------------------ */
-const COURSE_LEN = 8600;               // 起点 z=0 → 终点 z=-8600（约 3~5 分钟）
-const START_H = 1450;                  // 起点海拔（终点溪谷镇约在 y≈20）
+const COURSE_LEN = 3200;               // 起点 z=0 → 终点 z=-3200（全程约 2~3 分钟）
+const START_H = 1450;                  // 起点海拔（终点溪谷镇约在 y≈910）
 const BASE_GRADE = 0.168;              // 平均坡度
 // SEG_X / SEG_Z 同时决定「渲染网格」与「物理高度」的采样密度：两者共用同一
 // 格点与同一套三角形对角线，所以贴地判定与看到的坡面逐厘米一致（不会穿模）。
 const CHUNK_D = 80, CHUNK_W = 260, SEG_X = 72, SEG_Z = 26;
 const TDX = CHUNK_W / SEG_X, TDZ = CHUNK_D / SEG_Z;
 const POOL_SIZE = 14;
-const CP_Z = [-950, -1900, -2850, -3800, -4750, -5700, -6650, -7600];
+const CP_Z = [-355, -705, -1060, -1415, -1765, -2120, -2475, -2830];
 const FINISH_Z = -COURSE_LEN;
 const GRAVITY = 26;
 const IS_TOUCH = (('ontouchstart' in window) || navigator.maxTouchPoints > 0) &&
