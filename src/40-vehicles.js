@@ -13,12 +13,12 @@ function buildVehicles(THREE, M) {
   const C_AMBER = 0xffb020;
   const C_DEEPBLUE = 0x2b3a67;
   const C_CHESTNUT = 0xb0703c;
-  const C_TEAL = 0x2fa38a;
+  const C_TUNIC = 0x4aa83c;   // 参考图的草绿束腰外衣
   const C_REDORANGE = 0xff5a3c;
   const C_MANE = 0x4a2f1c;
   const C_SADDLETEAL = 0x2fb6a8;
   const C_BOOT = 0x6b4a2f;
-  const C_CAPE = 0x3aa0d8;
+  const C_CAPE = 0x7a4a28;   // 皮革色披风：读作背包布，与绿衣暖土色搭配
   const C_SCARF = 0xe8453a;   // 暖红围巾：与冷色披风互补，跑动时最醒目
 
   const TAU = Math.PI * 2;
@@ -59,7 +59,7 @@ function buildVehicles(THREE, M) {
   const matSpoke = ownToon(C_CREAM, { transparent: true, opacity: 1, depthWrite: false });
   const matBlurDisc = ownToon(C_CREAM, { transparent: true, opacity: 0, depthWrite: false });
   const matInk = M.toon(C_INK);
-  const matTeal = M.toon(C_TEAL);
+  const matTunic = M.toon(C_TUNIC);
   const matAmber = M.toon(C_AMBER);
   const matMagenta = M.toon(C_MAGENTA);
   const matChestnut = M.toon(C_CHESTNUT);
@@ -70,7 +70,7 @@ function buildVehicles(THREE, M) {
   const matBoot = M.toon(C_BOOT);
   const matCape = M.toon(C_CAPE, { side: THREE.DoubleSide });
   const matScarf = M.toon(C_SCARF, { side: THREE.DoubleSide });
-  const matVisor = ownGlow(C_CYAN, 2.2);
+  const matLens = M.toon(0x20303a);   // 护目镜深色镜片（参考图的风镜）
 
   // Board owns its own glow materials so pulsing never mutates shared M mats.
   const matBoardStrip = ownGlow(C_CYAN, 2.6);
@@ -454,7 +454,7 @@ function buildVehicles(THREE, M) {
   const torso = joint(rig, 0, 0.02, 0);
   // 圆润胸廓：上宽下窄，10 段圆周（原来 4 段是个菱形盒子），前后略扁。
   const torsoG = new THREE.CylinderGeometry(0.185, 0.145, 0.48, 10);
-  const torsoMesh = mk(torsoG, matTeal, torso, 0, 0.24, 0);
+  const torsoMesh = mk(torsoG, matTunic, torso, 0, 0.24, 0);
   torsoMesh.scale.set(1, 1, 0.72);
   ink(torsoMesh, 0.028);
   // 腰带：旅人装束的层次感。
@@ -472,10 +472,10 @@ function buildVehicles(THREE, M) {
   const headRG = new THREE.SphereGeometry(0.15, 16, 12);
   ink(mk(headRG, matCream, riderHead, 0, 0, 0), 0.026);
   const helmetG = new THREE.SphereGeometry(0.176, 18, 12, 0, TAU, 0, PI * 0.62);
-  const helmet = mk(helmetG, matCream, riderHead, 0, 0.005, 0.008);
+  const helmet = mk(helmetG, matTunic, riderHead, 0, 0.005, 0.008);
   ink(helmet, 0.026);
   const visorG = new THREE.BoxGeometry(0.27, 0.055, 0.05);
-  mkGlow(visorG, matVisor, riderHead, 0, 0.015, -0.145);
+  mk(visorG, matLens, riderHead, 0, 0.015, -0.145);
   // 头盔下的发束 + 护目镜带：头部不再是光球，多了旅人的轮廓细节。
   const hairG = new THREE.SphereGeometry(0.10, 12, 10);
   const hair = mk(hairG, matMane, riderHead, 0, -0.055, 0.10);
@@ -491,13 +491,13 @@ function buildVehicles(THREE, M) {
     const sho = joint(torso, s * SHO_X, SHO_Y, 0);
     // 肩甲：坐在肩关节枢轴上，抬臂时几乎不动，读作护肩。
     const padG = new THREE.SphereGeometry(0.085, 12, 10);
-    const pad = mk(padG, matTeal, sho, 0, 0.015, 0);
+    const pad = mk(padG, matTunic, sho, 0, 0.015, 0);
     pad.scale.set(1, 0.82, 1);
     ink(pad, 0.02);
     const upG = new THREE.CylinderGeometry(0.052, 0.062, R_UPPER, 10);
-    ink(mk(upG, matTeal, sho, 0, -R_UPPER * 0.5, 0), 0.022);
+    ink(mk(upG, matTunic, sho, 0, -R_UPPER * 0.5, 0), 0.022);
     const elb = joint(sho, 0, -R_UPPER, 0);
-    mk(new THREE.SphereGeometry(0.05, 10, 8), matTeal, elb, 0, 0, 0);   // 肘垫
+    mk(new THREE.SphereGeometry(0.05, 10, 8), matTunic, elb, 0, 0, 0);   // 肘垫
     const foG = new THREE.CylinderGeometry(0.045, 0.052, R_FORE, 10);
     mk(foG, matCream, elb, 0, -R_FORE * 0.5, 0);
     const wri = joint(elb, 0, -R_FORE, 0);
@@ -516,7 +516,7 @@ function buildVehicles(THREE, M) {
     ink(mk(thG, matCream, hip, 0, -R_THIGH * 0.5, 0), 0.024);
     const kne = joint(hip, 0, -R_THIGH, 0);
     const kneePadG = new THREE.SphereGeometry(0.062, 12, 10);
-    const kneePad = mk(kneePadG, matTeal, kne, 0, 0, -0.012);
+    const kneePad = mk(kneePadG, matTunic, kne, 0, 0, -0.012);
     kneePad.scale.set(1, 0.9, 1.12);
     ink(kneePad, 0.018);
     const shG = new THREE.CylinderGeometry(0.058, 0.070, R_SHIN, 10);

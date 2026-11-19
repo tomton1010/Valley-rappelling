@@ -317,8 +317,8 @@ class Post {
       uniforms: {
         tDiffuse: { value: null }, tBloom: { value: null }, tRays: { value: null },
         strength: { value: this.strength }, exposure: { value: 1.0 },
-        vignette: { value: 0.30 }, rush: { value: 0 }, sat: { value: 1.18 },
-        rayStrength: { value: 0.52 },
+        vignette: { value: 0.26 }, rush: { value: 0 }, sat: { value: 1.22 },
+        rayStrength: { value: 0.72 },
         rayTint: { value: new THREE.Color(0xffe6b0) },
         tint: { value: new THREE.Color(0x8fe8ff) }, time: { value: 0 }
       },

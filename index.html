@@ -943,8 +943,8 @@ class Post {
       uniforms: {
         tDiffuse: { value: null }, tBloom: { value: null }, tRays: { value: null },
         strength: { value: this.strength }, exposure: { value: 1.0 },
-        vignette: { value: 0.30 }, rush: { value: 0 }, sat: { value: 1.18 },
-        rayStrength: { value: 0.52 },
+        vignette: { value: 0.26 }, rush: { value: 0 }, sat: { value: 1.22 },
+        rayStrength: { value: 0.72 },
         rayTint: { value: new THREE.Color(0xffe6b0) },
         tint: { value: new THREE.Color(0x8fe8ff) }, time: { value: 0 }
       },
@@ -1482,9 +1482,26 @@ function buildSharedGeometries() {
 
   // 岩石
   const r1 = new THREE.DodecahedronGeometry(1, 0); r1.scale(1.15, 0.82, 1.0);
-  tintGeo(r1, 0x9a93b8, 0.2);
+  tintGeo(r1, 0xc09060, 0.2);
   r1.computeVertexNormals();
   GEO.rock = r1;
+
+  // 苔藓石遗迹（双柱 + 楣 + 断柱，顶面覆苔）：参考图里的废塔残拱
+  const rp = [];
+  const pl1 = new THREE.BoxGeometry(0.7, 2.6, 0.7); pl1.translate(-1.1, 1.3, 0); tintGeo(pl1, 0xb9a98c, 0.10);
+  const pl2 = new THREE.BoxGeometry(0.7, 2.6, 0.7); pl2.translate(1.1, 1.3, 0); tintGeo(pl2, 0xb9a98c, 0.10);
+  const pl3 = new THREE.BoxGeometry(0.7, 1.4, 0.7); pl3.translate(2.3, 0.7, 0.2); tintGeo(pl3, 0xa99878, 0.10);
+  const lintel = new THREE.BoxGeometry(3.2, 0.6, 0.8); lintel.translate(0, 2.9, 0); tintGeo(lintel, 0xc4b496, 0.08);
+  const moss1 = new THREE.BoxGeometry(3.24, 0.12, 0.84); moss1.translate(0, 3.24, 0); tintGeo(moss1, 0x6fbf3f, 0.16);
+  const moss2 = new THREE.BoxGeometry(0.74, 0.10, 0.74); moss2.translate(-1.1, 2.65, 0); tintGeo(moss2, 0x74c247, 0.16);
+  const moss3 = new THREE.BoxGeometry(0.74, 0.10, 0.74); moss3.translate(2.3, 1.45, 0.2); tintGeo(moss3, 0x8ed14f, 0.16);
+  rp.push(pl1, pl2, pl3, lintel, moss1, moss2, moss3);
+  GEO.ruin = mergeGeos(rp); rp.forEach(g => g.dispose());
+  GEO.ruin.computeVertexNormals();
+
+  // 瀑底泡沫盘
+  const foam = new THREE.CircleGeometry(1, 14); foam.rotateX(-Math.PI / 2);
+  GEO.foam = foam;
 
   // 木箱（箱体 + 板条）
   const parts = [];
@@ -1547,6 +1564,7 @@ function buildSharedGeometries() {
   // 云球（明暗由着色器按「世界向上」的法线方向烘出，见 makeCloudMaterial）
   GEO.puff = new THREE.IcosahedronGeometry(1, 1);
   tintGeo(GEO.puff, 0xffffff, 0);
+  fallMat = makeFallMaterial();
 }
 
 function buildRampGeometry() {
@@ -1659,11 +1677,11 @@ function buildSky() {
   const sd = new THREE.Vector3(SUN_DIR.x, SUN_DIR.y, SUN_DIR.z).normalize();
   skyMat = new THREE.ShaderMaterial({
     uniforms: {
-      zenith: { value: new THREE.Color(0x1f80d2) },
-      mid: { value: new THREE.Color(0x7fd3f2) },
-      horizon: { value: new THREE.Color(0xe4f6ff) },
-      low: { value: new THREE.Color(0xffe3ad) },
-      sunCol: { value: new THREE.Color(0xffd98a) },
+      zenith: { value: new THREE.Color(0x12a0be) },
+      mid: { value: new THREE.Color(0x4cc4d4) },
+      horizon: { value: new THREE.Color(0xcfeee8) },
+      low: { value: new THREE.Color(0xffe9c0) },
+      sunCol: { value: new THREE.Color(0xffe0a0) },
       sunDir: { value: sd },
       time: { value: 0 }
     },
@@ -1677,8 +1695,8 @@ function buildSky() {
         vec3 d = normalize(vDir);
         float h = clamp(d.y*0.5+0.5, 0.0, 1.0);
         vec3 c = mix(low, horizon, smoothstep(0.41, 0.500, h));
-        c = mix(c, mid, smoothstep(0.500, 0.575, h));
-        c = mix(c, zenith, smoothstep(0.560, 0.800, h));
+        c = mix(c, mid, smoothstep(0.495, 0.545, h));
+        c = mix(c, zenith, smoothstep(0.535, 0.720, h));
         float s = max(dot(d, normalize(sunDir)), 0.0);
         c += sunCol * pow(s, 1200.0) * 4.0;
         c += sunCol * pow(s, 26.0) * 0.34;
@@ -1712,13 +1730,13 @@ function buildSky() {
   const cc = new THREE.Color();
   let n = 0;
   for (let c = 0; c < 22 && n < maxPuffs; c++) {
-    const ang = rng() * TAU, dist = 180 + rng() * 520;
+    const ang = rng() * TAU, dist = 240 + rng() * 560;
     const bx = Math.cos(ang) * dist, bz = Math.sin(ang) * dist;
-    const by = 120 + rng() * 130;
-    const scale = 16 + rng() * 24;
-    const puffs = 4 + Math.floor(rng() * 3);
+    const by = 70 + rng() * 100;
+    const scale = 24 + rng() * 30;
+    const puffs = 5 + Math.floor(rng() * 3);
     for (let p = 0; p < puffs && n < maxPuffs; p++) {
-      const ox = (rng() - 0.5) * scale * 2.4, oy = (rng() - 0.5) * scale * 0.42, oz = (rng() - 0.5) * scale * 1.3;
+      const ox = (rng() - 0.5) * scale * 2.4, oy = (rng() - 0.5) * scale * 0.50, oz = (rng() - 0.5) * scale * 1.3;
       const s = scale * (0.5 + rng() * 0.6);
       dummy.position.set(bx + ox, by + oy, bz + oz);
       dummy.scale.set(s, s * (0.62 + rng() * 0.2), s);
@@ -1741,9 +1759,9 @@ function buildSky() {
   mountainGroup.frustumCulled = false;
   scene.add(mountainGroup);
   const layers = [
-    { r: 700, h: 210, col: 0x6f6796, seed: 3 },
-    { r: 840, h: 265, col: 0x8b85b0, seed: 9 },
-    { r: 960, h: 320, col: 0xa9a4c8, seed: 17 }
+    { r: 700, h: 210, col: 0x4f8ba0, seed: 3 },
+    { r: 840, h: 265, col: 0x6fa3b4, seed: 9 },
+    { r: 960, h: 320, col: 0x93c0c8, seed: 17 }
   ];
   for (const L of layers) {
     const seg = 96, pos = [], col = [];
@@ -1753,7 +1771,9 @@ function buildSky() {
     for (let i = 0; i <= seg; i++) {
       const a = i / seg * TAU;
       const v = Math.abs(fbm(Math.cos(a) * 2.2 + L.seed, Math.sin(a) * 2.2, 3));
-      hs.push(L.h * (0.35 + v * 1.25) + rr() * 12);
+      // 平顶台地（mesa）剪影：高度量化成台阶，远山读作一层层桌状崖而不是尖峰
+      const raw = L.h * (0.22 + v * 0.85) + rr() * 12;
+      hs.push(Math.round(raw / 46) * 46 + 8);
     }
     hs[seg] = hs[0];
     for (let i = 0; i < seg; i++) {
@@ -1774,6 +1794,7 @@ function buildSky() {
     mesh.renderOrder = -90 + layers.indexOf(L);
     mountainGroup.add(mesh);
   }
+  buildMotes();
 }
 
 /* 雾范围与可视区块数绑定：远处地形边缘永远藏在雾里，看不出拼接边界 */
@@ -1786,12 +1807,16 @@ function applyFogRange() {
     waterMat.uniforms.fogNear.value = near;
     waterMat.uniforms.fogFar.value = far;
   }
+  if (fallMat) {
+    fallMat.uniforms.fogNear.value = near;
+    fallMat.uniforms.fogFar.value = far;
+  }
 }
 
 function buildLights() {
-  hemi = new THREE.HemisphereLight(0xbfe8ff, 0x6faa4a, 0.52);
+  hemi = new THREE.HemisphereLight(0xcfeef2, 0x7fb04a, 0.50);
   scene.add(hemi);
-  sun = new THREE.DirectionalLight(0xfff0cf, 1.62);
+  sun = new THREE.DirectionalLight(0xfff2d0, 1.66);
   sun.castShadow = true;
   sun.shadow.mapSize.set(Q.shadow, Q.shadow);
   sun.shadow.camera.near = 1;
@@ -1805,7 +1830,7 @@ function buildLights() {
   sun.shadow.normalBias = 0.028;
   scene.add(sun);
   scene.add(sun.target);
-  fillLight = new THREE.DirectionalLight(0x9fd0ff, 0.22);
+  fillLight = new THREE.DirectionalLight(0x9fd8e8, 0.24);
   fillLight.position.set(60, 40, 60);
   scene.add(fillLight);
   // 暖色轮廓光：从后方勾出骑手 / 载具的金边，让主体从草甸里跳出来
@@ -1818,20 +1843,92 @@ function buildLights() {
 /* 卡通云：按法线与「世界上方」的夹角烘出暖白顶冠 → 冷蓝底腹。
    用法线而不是顶点高度，实例可以任意翻滚而体积感始终正确。 */
 function makeCloudMaterial() {
-  const mat = M.toon(0xffffff, { vertexColors: true, fog: false, emissive: 0xdceaff, emissiveIntensity: 0.34 });
+  const mat = M.toon(0xffffff, { vertexColors: true, fog: false, emissive: 0xdceaff, emissiveIntensity: 0.18 });
   mat.onBeforeCompile = (shader) => {
     shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_begin>', `
       #include <normal_fragment_begin>
       {
         vec3 upView = normalize(mat3(viewMatrix) * vec3(0.0, 1.0, 0.0));
         float upness = dot(normalize(normal), upView) * 0.5 + 0.5;
-        vec3 crown = vec3(1.06, 1.02, 0.96);
-        vec3 belly = vec3(0.60, 0.68, 0.86);
+        vec3 crown = vec3(1.10, 1.05, 0.98);
+        vec3 belly = vec3(0.52, 0.64, 0.76);
         diffuseColor.rgb *= mix(belly, crown, smoothstep(0.22, 0.88, upness));
       }`);
   };
   mat.customProgramCacheKey = () => 'wwd-cloud';
   return mat;
+}
+
+/* --------------------------- 崖壁瀑布 --------------------------- */
+/* 真实几何 + 滚动水纹 shader：水从崖顶渗出、竖直拉出白练，底部落进泡沫盘。
+   不是贴图假画：条带随时间向下滚动，边缘与顶/底都有衰减。 */
+function makeFallMaterial() {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      fogNear: { value: 260 }, fogFar: { value: 1020 }
+    },
+    vertexShader: `
+      varying vec2 vUv; varying float vFog;
+      void main(){
+        vUv = uv;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vFog = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      uniform float uTime, fogNear, fogFar;
+      varying vec2 vUv; varying float vFog;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+      void main(){
+        float cell = hash(floor(vec2(vUv.x * 7.0, vUv.y * 22.0 - uTime * 3.0)));
+        float streak = 0.55 + 0.45 * sin(vUv.x * 22.0 + cell * 3.0);
+        float flow = fract(vUv.y * 3.0 - uTime * 1.6 + cell * 0.15);
+        float body = smoothstep(0.0, 0.16, vUv.x) * smoothstep(1.0, 0.84, vUv.x);
+        float head = smoothstep(0.0, 0.08, vUv.y);
+        float foot = smoothstep(1.0, 0.90, vUv.y);
+        vec3 col = mix(vec3(0.62, 0.86, 0.92), vec3(0.96, 1.0, 1.0), streak * 0.6 + flow * 0.4);
+        float alpha = body * head * foot * (0.62 + 0.30 * streak);
+        float f = smoothstep(fogNear, fogFar, vFog);
+        gl_FragColor = vec4(mix(col, vec3(0.84, 0.94, 0.96), f), alpha * (1.0 - f * 0.85));
+      }`,
+    transparent: true, depthWrite: false, side: THREE.DoubleSide
+  });
+}
+
+/* --------------------------- 空气飘叶 --------------------------- */
+/* 参考图里逆光飘飞的叶屑 / 光点：70 个粒子在玩家周围盒内漂移并回绕。 */
+function buildMotes() {
+  const N = 70;
+  const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+  moteVel = new Float32Array(N * 3);
+  const c = new THREE.Color();
+  for (let i = 0; i < N; i++) {
+    pos[i * 3] = rand(-32, 32); pos[i * 3 + 1] = rand(0.5, 16); pos[i * 3 + 2] = rand(-32, 32);
+    moteVel[i * 3] = rand(0.4, 1.3); moteVel[i * 3 + 1] = rand(-0.30, 0.15); moteVel[i * 3 + 2] = rand(-0.5, 0.5);
+    c.setHex(i % 3 === 0 ? 0xffe07a : (i % 3 === 1 ? 0xcdeb72 : 0xfff4e0));
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 32;
+  const g2 = cv.getContext('2d');
+  const grd = g2.createRadialGradient(16, 16, 1, 16, 16, 15);
+  grd.addColorStop(0, 'rgba(255,255,255,0.95)');
+  grd.addColorStop(0.5, 'rgba(255,255,255,0.45)');
+  grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g2.fillStyle = grd; g2.fillRect(0, 0, 32, 32);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  motes = new THREE.Points(g, new THREE.PointsMaterial({
+    size: 0.26, map: tex, vertexColors: true, transparent: true, opacity: 0.85,
+    depthWrite: false, sizeAttenuation: true
+  }));
+  motes.frustumCulled = false;
+  motes.renderOrder = 3;
+  scene.add(motes);
 }
 
 /* --------------------------- 草浪着色器 --------------------------- */
@@ -1903,14 +2000,15 @@ function makeWaterMaterial() {
 let TERRAIN_COLORS = null;
 function buildTerrainColors() {
   TERRAIN_COLORS = {
-    grassA: new THREE.Color(0x8ed14f), grassB: new THREE.Color(0x5aa838),
-    grassHi: new THREE.Color(0x9fd45f), dirt: new THREE.Color(0x8a6440),
-    gravel: new THREE.Color(0xa88a63),
-    rock: new THREE.Color(0x9a93b8), mud: new THREE.Color(0x6b4a28),
-    sand: new THREE.Color(0xb59a6e), town: new THREE.Color(0xa8d06a)
+    grassA: new THREE.Color(0x8cc843), grassB: new THREE.Color(0x5aa838),
+    grassHi: new THREE.Color(0xb8e062), dirt: new THREE.Color(0x9a7448),
+    gravel: new THREE.Color(0xb99a6e),
+    rockA: new THREE.Color(0xc08d58), rockB: new THREE.Color(0x8a5f38),
+    mud: new THREE.Color(0x6b4a28),
+    sand: new THREE.Color(0xc9ad7c), town: new THREE.Color(0xa8d06a)
   };
 }
-let grassMat, waterMat, vegMat, propWoodMat;
+let grassMat, waterMat, vegMat, propWoodMat, fallMat, motes, moteVel;
 
 class Chunk {
   constructor() {
@@ -1985,6 +2083,22 @@ class Chunk {
     this.bushes = new THREE.InstancedMesh(GEO.bush, vegMat, 60);
     this.bushes.castShadow = false;
     this.group.add(this.bushes);
+    this.ruins = new THREE.InstancedMesh(GEO.ruin, vegMat, 6);
+    this.ruins.castShadow = true; this.ruins.receiveShadow = true;
+    this.group.add(this.ruins);
+
+    // 崖壁瀑布（每块最多 2 条）：贴坡水练 + 瀑底泡沫
+    this.falls = [];
+    for (let i = 0; i < 2; i++) {
+      const fm = new THREE.Mesh(new THREE.BufferGeometry(), fallMat);
+      fm.renderOrder = 2; fm.visible = false; fm.frustumCulled = false;
+      const foam = new THREE.Mesh(GEO.foam, new THREE.MeshBasicMaterial({
+        color: 0xeaf6ff, transparent: true, opacity: 0.5, depthWrite: false
+      }));
+      foam.renderOrder = 2; foam.visible = false;
+      this.group.add(fm); this.group.add(foam);
+      this.falls.push({ mesh: fm, foam, x: 0, z: 0, y: 0, on: false });
+    }
 
     // 互动道具池
     this.propGroup = new THREE.Group();
@@ -2069,6 +2183,7 @@ class Chunk {
     const nrm = this.geo.attributes.normal.array;
     const C = TERRAIN_COLORS;
     const tmp = new THREE.Color();
+    const tmpR = new THREE.Color();
     // 高度先整块算一遍存起来：颜色里的坡度项与后面的法线都复用它，
     // 避免同一格点被重复求 fbm（细分提高后这是最大的构建开销）。
     const hbuf = this.hbuf;
@@ -2089,8 +2204,8 @@ class Chunk {
         const n = fbm(x * 0.035, wz * 0.035, 2);
         const patch = fbm(x * 0.009 - 3.1, wz * 0.009 + 7.4, 2);
         tmp.copy(C.grassA).lerp(C.grassB, clamp(n * 0.85 + 0.5, 0, 1));
-        tmp.lerp(C.grassHi, clamp(patch * 0.6 + 0.2, 0, 0.5));
-        tmp.lerp(C.grassHi, clamp((h - (START_H - descentAt(-wz))) * 0.030, 0, 0.38));
+        tmp.lerp(C.grassHi, clamp(patch * 0.6 + 0.2, 0, 0.32));
+        tmp.lerp(C.grassHi, clamp((h - (START_H - descentAt(-wz))) * 0.030, 0, 0.22));
         const tb = townBlend(x, wz);
         if (tb > 0) tmp.lerp(C.town, tb * 0.7);
         const dPath = Math.abs(x - pathX(wz));
@@ -2104,7 +2219,13 @@ class Chunk {
         const hr = ix < SEG_X ? hbuf[vi + 1] : h;
         const hd = iz < SEG_Z ? hbuf[vi + NVX] : h;
         const slope = Math.abs(hr - h) + Math.abs(hd - h);
-        tmp.lerp(C.rock, clamp((slope - 1.55) * 0.34, 0, 0.82));
+        // 砂岩崖壁：按高度做地层条带（暖赭色深浅交替），坡面越陡岩色越满
+        const rockMask = clamp((slope - 1.35) * 0.40, 0, 0.9);
+        if (rockMask > 0.01) {
+          const band = 0.5 + 0.5 * Math.sin(h * 0.50 + patch * 2.0);
+          tmpR.copy(C.rockA).lerp(C.rockB, band);
+          tmp.lerp(tmpR, rockMask);
+        }
         col[vi * 3] = tmp.r; col[vi * 3 + 1] = tmp.g; col[vi * 3 + 2] = tmp.b;
       }
     }
@@ -2182,7 +2303,7 @@ class Chunk {
     const fill = (mesh, count, kind) => {
       let n = 0;
       const isRock = kind === 'rock';
-      const minD = kind === 'pine' ? 9 : kind === 'broad' ? 10 : isRock ? 6.5 : 6.0;
+      const minD = kind === 'pine' ? 9 : kind === 'broad' ? 10 : kind === 'ruin' ? 16 : isRock ? 6.5 : 6.0;
       for (let i = 0; i < count; i++) {
         const x = (rng() - 0.5) * (CHUNK_W - 8);
         const lz = -rng() * CHUNK_D, wz = zStart + lz;
@@ -2198,6 +2319,7 @@ class Chunk {
         let s;
         if (kind === 'pine') s = 0.85 + rng() * 1.15;
         else if (kind === 'broad') s = 0.8 + rng() * 0.9;
+        else if (kind === 'ruin') s = 0.9 + rng() * 0.7;
         else if (isRock) s = 0.55 + rng() * 1.9;
         else s = 0.7 + rng() * 0.9;
         dummy.position.set(x, h - (isRock ? s * 0.35 : 0.12), lz);
@@ -2209,10 +2331,10 @@ class Chunk {
         cvar.setRGB(t * (0.95 + rng() * 0.1), t, t * (0.9 + rng() * 0.14));
         mesh.setColorAt(n, cvar);
         // 靠近路线的树与岩石才是碰撞体
-        if (d < 30 && (kind === 'pine' || kind === 'broad' || kind === 'rock')) {
-          const rr = kind === 'rock' ? s * 0.95 : s * 0.55;
-          if (kind !== 'rock' || s > 0.85) {
-            this.colliders.push({ type: kind === 'rock' ? 'rock' : 'tree', x, z: wz, r: rr, y: h });
+        if (d < 30 && (kind === 'pine' || kind === 'broad' || kind === 'rock' || kind === 'ruin')) {
+          const rr = kind === 'rock' ? s * 0.95 : kind === 'ruin' ? s * 1.5 : s * 0.55;
+          if (kind === 'ruin' || kind !== 'rock' || s > 0.85) {
+            this.colliders.push({ type: kind === 'rock' || kind === 'ruin' ? 'rock' : 'tree', x, z: wz, r: rr, y: h });
           }
         }
         n++;
@@ -2226,6 +2348,52 @@ class Chunk {
     fill(this.broad, Math.floor(Q.pines * 0.42 * (nearTown ? 0.5 : 1)), 'broad');
     fill(this.rocks, Math.floor(Q.rocks * D.obstacles), 'rock');
     fill(this.bushes, Math.floor(Q.pines * 0.5), 'bush');
+    fill(this.ruins, nearTown ? 1 : 3, 'ruin');
+
+    /* ---- 崖壁瀑布：沿谷壁坡面铺一条贴地水练，从崖顶泻到阶地 ---- */
+    for (const f of this.falls) { f.on = false; f.mesh.visible = false; f.foam.visible = false; }
+    if (-zStart > 60 && -zStart < COURSE_LEN - 200) {
+      for (const f of this.falls) {
+        if (rng() > 0.62) continue;
+        const side = rng() < 0.5 ? -1 : 1;
+        const wz = zStart - rng() * CHUNK_D;
+        const cx = pathX(wz);
+        const xTop = cx + side * 58, xBot = cx + side * 30;
+        const hgt = heightAt(xTop, wz) - heightAt(xBot, wz);
+        if (hgt < 5) continue;
+        const w = 3.0 + rng() * 2.0, SEG = 8;
+        const pos = new Float32Array((SEG + 1) * 2 * 3);
+        const uv = new Float32Array((SEG + 1) * 2 * 2);
+        const idx = new Uint16Array(SEG * 6);
+        for (let t = 0; t <= SEG; t++) {
+          const x = xTop + (xBot - xTop) * (t / SEG);
+          const y = heightAt(x, wz) + 0.14;
+          for (let s = 0; s < 2; s++) {
+            const o = (t * 2 + s) * 3;
+            pos[o] = x; pos[o + 1] = y; pos[o + 2] = wz - zStart + (s ? w / 2 : -w / 2);
+            const uo = (t * 2 + s) * 2;
+            uv[uo] = s; uv[uo + 1] = t / SEG;
+          }
+          if (t < SEG) {
+            const a = t * 2, b = a + 1, c = a + 2, d = a + 3, o = t * 6;
+            idx[o] = a; idx[o + 1] = b; idx[o + 2] = c;
+            idx[o + 3] = b; idx[o + 4] = d; idx[o + 5] = c;
+          }
+        }
+        f.mesh.geometry.dispose();
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+        g.setIndex(new THREE.BufferAttribute(idx, 1));
+        g.computeBoundingSphere();
+        f.mesh.geometry = g;
+        f.on = true; f.x = xBot; f.z = wz; f.y = heightAt(xBot, wz);
+        f.mesh.visible = true;
+        f.foam.visible = true;
+        f.foam.position.set(xBot - side * 1.5, f.y + 0.10, wz - zStart);
+        f.foam.scale.set(w * 0.8, 1, w * 0.6);
+      }
+    }
 
     /* ---- 互动道具 ---- */
     for (const p of this.props) { p.active = false; p.broken = false; p.cool = 0; p.anim = 0; p.mesh.visible = false; }
@@ -2506,6 +2674,45 @@ function buildTown() {
     town.userData.flags.push(flag);
   }
   town.visible = false;
+  buildLandmark();
+}
+
+/* --------------------------- 地平线发光塔 --------------------------- */
+/* 参考图远处那座橙顶蓝环的高塔：放在赛程中段侧翼山脊上，作为途中地标。
+   纯程序化几何：收分石塔 + 青色光环 + 琥珀塔顶信标，泛光自然拾取。 */
+function buildLandmark() {
+  const g = new THREE.Group();
+  const x = 26, z = FINISH_Z - 180;
+  const y = heightAt(x, z);
+  const stone = M.toon(0x8a97a4);
+  let r = 7, yy = 0;
+  for (let i = 0; i < 6; i++) {
+    const h = 12 - i * 1.2;
+    const seg = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.82, r, h, 8), stone);
+    seg.position.y = yy + h / 2;
+    g.add(seg);
+    yy += h; r *= 0.82;
+    if (i === 1 || i === 3 || i === 5) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(r * 1.02, 0.30, 6, 20), M.glow(0x35e0ff, 2.6));
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = yy;
+      g.add(ring);
+    }
+  }
+  const crown = new THREE.Mesh(new THREE.ConeGeometry(r * 1.5, 6, 8), M.toon(0xd4a24a));
+  crown.position.y = yy + 3;
+  g.add(crown);
+  const beacon = new THREE.Mesh(new THREE.SphereGeometry(1.6, 12, 10), M.glow(0xffb020, 3.4));
+  beacon.position.y = yy + 7;
+  g.add(beacon);
+  for (let i = 0; i < 4; i++) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(6, 0.5, 0.5), stone);
+    arm.position.set(Math.cos(i * 1.57) * 4, 26 + i * 7, Math.sin(i * 1.57) * 4);
+    arm.rotation.y = i * 1.57;
+    g.add(arm);
+  }
+  g.position.set(x, y - 2, z);
+  scene.add(g);
 }
 
 /* --------------------------- 世界管理器 --------------------------- */
@@ -2570,6 +2777,33 @@ class World {
     grassMat.userData.uniforms.uWind.value = 1.0;
     waterMat.uniforms.uTime.value = time;
     skyMat.uniforms.time.value = time;
+    fallMat.uniforms.uTime.value = time;
+
+    // 飘叶：玩家周围盒内漂移 + 回绕，逆光里读作叶屑 / 光点
+    if (motes) {
+      const a = motes.geometry.attributes.position.array;
+      for (let i = 0; i < a.length; i += 3) {
+        a[i] += moteVel[i] * dt; a[i + 1] += moteVel[i + 1] * dt; a[i + 2] += moteVel[i + 2] * dt;
+        if (a[i] - p.x > 32) a[i] -= 64; else if (a[i] - p.x < -32) a[i] += 64;
+        if (a[i + 1] - p.y > 16) a[i + 1] -= 16; else if (a[i + 1] - p.y < -2) a[i + 1] += 16;
+        if (a[i + 2] - p.z > 32) a[i + 2] -= 64; else if (a[i + 2] - p.z < -32) a[i + 2] += 64;
+      }
+      motes.geometry.attributes.position.needsUpdate = true;
+    }
+
+    // 近处瀑布底部的水雾
+    this.mistTimer = (this.mistTimer || 0) - dt;
+    if (this.mistTimer <= 0) {
+      this.mistTimer = 0.24;
+      for (const [idx, c] of this.map) {
+        for (const f of c.falls) {
+          if (!f.on || Math.abs(p.z - f.z) > 90) continue;
+          FX.spawn(f.x + rand(-1, 1), f.y + 0.4, f.z + rand(-1, 1),
+            rand(-0.6, 0.6), rand(0.8, 1.6), rand(-0.6, 0.6),
+            0xeaf6ff, rand(0.6, 1.1), 1.6, 'smoke');
+        }
+      }
+    }
 
     // 道具动画
     for (const [idx, c] of this.map) {
@@ -2593,7 +2827,7 @@ class World {
 
     // 天空 / 云 / 远山跟随相机
     sky.position.copy(camera.position);
-    mountainGroup.position.set(camera.position.x, camera.position.y - 150, camera.position.z);
+    mountainGroup.position.set(camera.position.x, camera.position.y - 230, camera.position.z);
     cloudGroup.position.set(
       camera.position.x + Math.sin(time * 0.013) * 40,
       camera.position.y - 30,
@@ -2660,12 +2894,12 @@ function buildVehicles(THREE, M) {
   const C_AMBER = 0xffb020;
   const C_DEEPBLUE = 0x2b3a67;
   const C_CHESTNUT = 0xb0703c;
-  const C_TEAL = 0x2fa38a;
+  const C_TUNIC = 0x4aa83c;   // 参考图的草绿束腰外衣
   const C_REDORANGE = 0xff5a3c;
   const C_MANE = 0x4a2f1c;
   const C_SADDLETEAL = 0x2fb6a8;
   const C_BOOT = 0x6b4a2f;
-  const C_CAPE = 0x3aa0d8;
+  const C_CAPE = 0x7a4a28;   // 皮革色披风：读作背包布，与绿衣暖土色搭配
   const C_SCARF = 0xe8453a;   // 暖红围巾：与冷色披风互补，跑动时最醒目
 
   const TAU = Math.PI * 2;
@@ -2706,7 +2940,7 @@ function buildVehicles(THREE, M) {
   const matSpoke = ownToon(C_CREAM, { transparent: true, opacity: 1, depthWrite: false });
   const matBlurDisc = ownToon(C_CREAM, { transparent: true, opacity: 0, depthWrite: false });
   const matInk = M.toon(C_INK);
-  const matTeal = M.toon(C_TEAL);
+  const matTunic = M.toon(C_TUNIC);
   const matAmber = M.toon(C_AMBER);
   const matMagenta = M.toon(C_MAGENTA);
   const matChestnut = M.toon(C_CHESTNUT);
@@ -2717,7 +2951,7 @@ function buildVehicles(THREE, M) {
   const matBoot = M.toon(C_BOOT);
   const matCape = M.toon(C_CAPE, { side: THREE.DoubleSide });
   const matScarf = M.toon(C_SCARF, { side: THREE.DoubleSide });
-  const matVisor = ownGlow(C_CYAN, 2.2);
+  const matLens = M.toon(0x20303a);   // 护目镜深色镜片（参考图的风镜）
 
   // Board owns its own glow materials so pulsing never mutates shared M mats.
   const matBoardStrip = ownGlow(C_CYAN, 2.6);
@@ -3101,7 +3335,7 @@ function buildVehicles(THREE, M) {
   const torso = joint(rig, 0, 0.02, 0);
   // 圆润胸廓：上宽下窄，10 段圆周（原来 4 段是个菱形盒子），前后略扁。
   const torsoG = new THREE.CylinderGeometry(0.185, 0.145, 0.48, 10);
-  const torsoMesh = mk(torsoG, matTeal, torso, 0, 0.24, 0);
+  const torsoMesh = mk(torsoG, matTunic, torso, 0, 0.24, 0);
   torsoMesh.scale.set(1, 1, 0.72);
   ink(torsoMesh, 0.028);
   // 腰带：旅人装束的层次感。
@@ -3119,10 +3353,10 @@ function buildVehicles(THREE, M) {
   const headRG = new THREE.SphereGeometry(0.15, 16, 12);
   ink(mk(headRG, matCream, riderHead, 0, 0, 0), 0.026);
   const helmetG = new THREE.SphereGeometry(0.176, 18, 12, 0, TAU, 0, PI * 0.62);
-  const helmet = mk(helmetG, matCream, riderHead, 0, 0.005, 0.008);
+  const helmet = mk(helmetG, matTunic, riderHead, 0, 0.005, 0.008);
   ink(helmet, 0.026);
   const visorG = new THREE.BoxGeometry(0.27, 0.055, 0.05);
-  mkGlow(visorG, matVisor, riderHead, 0, 0.015, -0.145);
+  mk(visorG, matLens, riderHead, 0, 0.015, -0.145);
   // 头盔下的发束 + 护目镜带：头部不再是光球，多了旅人的轮廓细节。
   const hairG = new THREE.SphereGeometry(0.10, 12, 10);
   const hair = mk(hairG, matMane, riderHead, 0, -0.055, 0.10);
@@ -3138,13 +3372,13 @@ function buildVehicles(THREE, M) {
     const sho = joint(torso, s * SHO_X, SHO_Y, 0);
     // 肩甲：坐在肩关节枢轴上，抬臂时几乎不动，读作护肩。
     const padG = new THREE.SphereGeometry(0.085, 12, 10);
-    const pad = mk(padG, matTeal, sho, 0, 0.015, 0);
+    const pad = mk(padG, matTunic, sho, 0, 0.015, 0);
     pad.scale.set(1, 0.82, 1);
     ink(pad, 0.02);
     const upG = new THREE.CylinderGeometry(0.052, 0.062, R_UPPER, 10);
-    ink(mk(upG, matTeal, sho, 0, -R_UPPER * 0.5, 0), 0.022);
+    ink(mk(upG, matTunic, sho, 0, -R_UPPER * 0.5, 0), 0.022);
     const elb = joint(sho, 0, -R_UPPER, 0);
-    mk(new THREE.SphereGeometry(0.05, 10, 8), matTeal, elb, 0, 0, 0);   // 肘垫
+    mk(new THREE.SphereGeometry(0.05, 10, 8), matTunic, elb, 0, 0, 0);   // 肘垫
     const foG = new THREE.CylinderGeometry(0.045, 0.052, R_FORE, 10);
     mk(foG, matCream, elb, 0, -R_FORE * 0.5, 0);
     const wri = joint(elb, 0, -R_FORE, 0);
@@ -3163,7 +3397,7 @@ function buildVehicles(THREE, M) {
     ink(mk(thG, matCream, hip, 0, -R_THIGH * 0.5, 0), 0.024);
     const kne = joint(hip, 0, -R_THIGH, 0);
     const kneePadG = new THREE.SphereGeometry(0.062, 12, 10);
-    const kneePad = mk(kneePadG, matTeal, kne, 0, 0, -0.012);
+    const kneePad = mk(kneePadG, matTunic, kne, 0, 0, -0.012);
     kneePad.scale.set(1, 0.9, 1.12);
     ink(kneePad, 0.018);
     const shG = new THREE.CylinderGeometry(0.058, 0.070, R_SHIN, 10);
